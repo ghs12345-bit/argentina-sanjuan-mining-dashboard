@@ -1,0 +1,5 @@
+*.xlsx
+*.py
+*.js
+!dashboard.html
+projects_data_min.js
