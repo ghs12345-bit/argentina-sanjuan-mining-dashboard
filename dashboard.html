@@ -202,8 +202,8 @@ const basemaps = {
 };
 
 const map = L.map('map').setView([-30.5, -69.5], 7);
-basemaps.topo.addTo(map);
-let currentBasemap = 'topo';
+basemaps.light.addTo(map);
+let currentBasemap = 'light';
 
 function switchBasemap(type) {
   map.removeLayer(basemaps[currentBasemap]);
@@ -302,7 +302,9 @@ projects.forEach(p=>{
   const icon=L.divIcon({className:'custom-marker',html:`<div style="background:${color};width:13px;height:13px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`,iconSize:[17,17],iconAnchor:[8,8]});
   const marker=L.marker([p.LATITUDE,p.LONGITUDE],{icon});
   marker.bindPopup(buildPopup(p),{maxWidth:460,className:'custom-popup'});
-  marker.bindTooltip(`<b>${p.PROP_NAME}</b><br>${p.PRIMARY_COMMODITY||''} &middot; ${p.DEV_STAGE||''} &middot; ${p.ACTV_STATUS||''}<br>${p.OPERATOR_COMMON_NAME||p.OPERATOR_NAME||'-'}`,{direction:'top',offset:[0,-10]});
+  const ttContent=`<b>${p.PROP_NAME}</b><br>${p.PRIMARY_COMMODITY||''} &middot; ${p.DEV_STAGE||''} &middot; ${p.ACTV_STATUS||''}<br>${p.OPERATOR_COMMON_NAME||p.OPERATOR_NAME||'-'}`;
+  marker.bindTooltip(ttContent,{direction:'top',offset:[0,-10]});
+  marker._tooltipContent=ttContent;
   marker._projectData=p;
   allMarkers.push(marker);
   heatData.push([p.LATITUDE,p.LONGITUDE,0.5]);
@@ -337,7 +339,12 @@ function applyFilters() {
   map.closePopup();
   const names=new Set(f.map(p=>p.PROP_NAME));
   if(clusterOn) {clusterGroup.clearLayers();allMarkers.forEach(m=>{if(names.has(m._projectData.PROP_NAME))clusterGroup.addLayer(m);});}
-  else allMarkers.forEach(m=>m.setOpacity(names.has(m._projectData.PROP_NAME)?1:0));
+  else allMarkers.forEach(m=>{
+    const visible=names.has(m._projectData.PROP_NAME);
+    m.setOpacity(visible?1:0);
+    if(visible && !m.getTooltip()) m.bindTooltip(m._tooltipContent,{direction:'top',offset:[0,-10]});
+    else if(!visible) m.unbindTooltip();
+  });
   heatLayer.setLatLngs(f.filter(p=>p.LATITUDE&&p.LONGITUDE).map(p=>[p.LATITUDE,p.LONGITUDE,0.5]));
   if(currentView==='table') buildTable(f);
 }
